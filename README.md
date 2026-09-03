@@ -109,6 +109,37 @@ Proyek ini menggunakan arsitektur monorepo terstruktur standar industri yang mem
 
 ---
 
+## 💻 Instalasi Cepat & Penggunaan Langsung via Terminal (CLI)
+
+Bagi pengguna atau developer yang tidak ingin repot membuka browser atau mesin pencari, **PhishGuard** menyediakan perkakas terminal **PhishGuard CLI** yang dapat diinstal dan dijalankan secara instan dengan **1 baris perintah**:
+
+### ⚡ 1. Install Global CLI Otomatis (1 Baris Perintah):
+```bash
+curl -sSL https://raw.githubusercontent.com/MochErik/phishguard/main/scripts/install-cli.sh | bash
+```
+
+### ⚡ 2. Menjalankan Langsung Tanpa Install (*On-the-Fly*):
+```bash
+curl -sSL https://raw.githubusercontent.com/MochErik/phishguard/main/bin/phishguard | python3 - scan "https://bca-login-verify.xyz"
+```
+
+### 🛠️ 3. Contoh Penggunaan Perintah CLI:
+```bash
+# 1. Buka Menu Interaktif Terminal Dashboard
+phishguard
+
+# 2. Pindai Tautan / URL Langsung
+phishguard scan https://bca-update-data.xyz/login
+
+# 3. Pindai Teks Pesan SMS / WhatsApp Rekayasa Sosial
+phishguard text "URGENT: Rekening Mandiri Anda diblokir dalam 24 jam! Segera verifikasi kode OTP sekarang."
+
+# 4. Format Output JSON Mentah (Cocok untuk Integrasi CI/CD & Automasi)
+phishguard --json https://bca-update-data.xyz
+```
+
+---
+
 ## 🚀 Panduan Menjalankan Proyek
 
 ### 1. Menjalankan Live Web App (Lokal)

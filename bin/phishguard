@@ -1,0 +1,297 @@
+#!/usr/bin/env python3
+"""
+PhishGuard CLI — Enterprise AI Multi-Vector Phishing Detection Terminal Tool
+Author: Moch. Erik Irriansyah (NIM 04123003 — Universitas Narotama)
+"""
+import sys
+import os
+import re
+import math
+import json
+import time
+from urllib.parse import urlparse, unquote
+
+# ANSI Colors
+C_RESET = "\033[0m"
+C_BOLD = "\033[1m"
+C_RED = "\033[91m"
+C_GREEN = "\033[92m"
+C_YELLOW = "\033[93m"
+C_BLUE = "\033[94m"
+C_MAGENTA = "\033[95m"
+C_CYAN = "\033[96m"
+C_GRAY = "\033[90m"
+BG_RED = "\033[41m"
+BG_GREEN = "\033[42m"
+BG_YELLOW = "\033[43m"
+
+BANNER_TEXT = r"""
+   ____  _     _     _      ____                     _ 
+  |  _ \| |__ (_)___| |__  / ___|_   _  __ _ _ __ __| |
+  | |_) | '_ \| / __| '_ \| |  _| | | |/ _` | '__/ _` |
+  |  __/| | | | \__ \ | | | |_| | |_| | (_| | | | (_| |
+  |_|   |_| |_|_|___/_| |_|\____|\__,_|\__,_|_|  \__,_|"""
+
+BANNER = f"{C_CYAN}{C_BOLD}{BANNER_TEXT}\n{C_RESET}{C_GRAY}  Enterprise Multi-Vector Phishing & Social Engineering Defense CLI\n  Author: Moch. Erik Irriansyah (NIM 04123003 — Universitas Narotama)\n{C_RESET}"
+
+SUSPICIOUS_KEYWORDS = [
+    "login", "signin", "verify", "account", "secure", "update",
+    "confirm", "banking", "paypal", "apple", "google", "microsoft",
+    "password", "credential", "wallet", "crypto", "winner", "prize",
+    "free", "urgent", "suspended", "limited", "expire", "click",
+    "bri", "bca", "mandiri", "bni", "shopee", "tokopedia", "dana", "gopay", "ovo"
+]
+
+SUSPICIOUS_TLDS = [
+    ".xyz", ".top", ".club", ".work", ".click", ".link", ".surf",
+    ".buzz", ".cfd", ".sbs", ".rest", ".fit", ".monster", ".icu"
+]
+
+URGENCY_WORDS = [
+    "segera", "sekarang", "urgent", "mendesak", "jam lagi", "deadline",
+    "blokir", "terbatas", "24 jam", "48 jam", "sebelum terlambat", "segera verifikasi"
+]
+
+THREAT_WORDS = [
+    "ditutup", "dihapus", "denda", "penalti", "disuspend", "mencurigakan",
+    "diblokir permanen", "verifikasi data", "polisi", "ilegal", "hukum"
+]
+
+REWARD_WORDS = [
+    "menang", "hadiah", "gratis", "bonus", "cashback", "giveaway",
+    "juta rupiah", "undian", "voucher", "klaim", "terpilih"
+]
+
+def calculate_entropy(s: str) -> float:
+    if not s:
+        return 0.0
+    freq = {}
+    for c in s:
+        freq[c] = freq.get(c, 0) + 1
+    n = len(s)
+    return -sum((f / n) * math.log2(f / n) for f in freq.values())
+
+def scan_url_heuristics(url: str) -> dict:
+    t0 = time.time()
+    clean_url = url.strip().lower()
+    if not (clean_url.startswith("http://") or clean_url.startswith("https://")):
+        clean_url = "http://" + clean_url
+
+    try:
+        parsed = urlparse(clean_url)
+        hostname = parsed.hostname or clean_url
+    except Exception:
+        hostname = clean_url
+
+    has_ip = bool(re.search(r"(\d{1,3}\.){3}\d{1,3}", hostname))
+    entropy = calculate_entropy(clean_url)
+    matched_kw = [kw for kw in SUSPICIOUS_KEYWORDS if kw in clean_url]
+    tld_risk = any(hostname.endswith(tld) for tld in SUSPICIOUS_TLDS)
+    subdomain_count = max(0, len(hostname.split(".")) - 2)
+
+    score = 0.05
+    if has_ip: score += 0.40
+    if tld_risk: score += 0.35
+    if entropy > 4.2: score += 0.20
+    if len(matched_kw) >= 2: score += 0.35
+    elif len(matched_kw) == 1: score += 0.15
+    if "@" in clean_url: score += 0.40
+    if subdomain_count >= 2: score += 0.15
+
+    final_score = min(round(score, 3), 1.0)
+    verdict = "phishing" if final_score >= 0.65 else ("suspicious" if final_score >= 0.35 else "safe")
+
+    return {
+        "target": url,
+        "hostname": hostname,
+        "type": "URL",
+        "verdict": verdict,
+        "risk_percentage": int(final_score * 100),
+        "entropy": round(entropy, 3),
+        "has_ip": has_ip,
+        "flagged_keywords": matched_kw,
+        "tld_risk": tld_risk,
+        "subdomain_count": subdomain_count,
+        "scan_time_ms": round((time.time() - t0) * 1000, 2)
+    }
+
+def scan_text_heuristics(text: str, label: str = "TEXT") -> dict:
+    t0 = time.time()
+    lower = text.lower()
+    urgency_hits = [w for w in URGENCY_WORDS if w in lower]
+    threat_hits = [w for w in THREAT_WORDS if w in lower]
+    reward_hits = [w for w in REWARD_WORDS if w in lower]
+
+    urls = re.findall(r"http[s]?://(?:[a-zA-Z0-9$\-_.+!*'(),;:@&=/?#%])+", text)
+
+    urgency_score = min(len(urgency_hits) * 0.25, 1.0)
+    threat_score = min(len(threat_hits) * 0.30, 1.0)
+    reward_score = min(len(reward_hits) * 0.25, 1.0)
+
+    score = (urgency_score * 0.35) + (threat_score * 0.40) + (reward_score * 0.25)
+    if "otp" in lower or "pin" in lower or "password" in lower or "kata sandi" in lower:
+        score += 0.35
+    if urls:
+        score += 0.20
+
+    final_score = min(round(score, 3), 1.0)
+    verdict = "phishing" if final_score >= 0.60 else ("suspicious" if final_score >= 0.30 else "safe")
+
+    all_flagged = list(set(urgency_hits + threat_hits + reward_hits))
+
+    return {
+        "target": text[:80] + ("..." if len(text) > 80 else ""),
+        "type": label,
+        "verdict": verdict,
+        "risk_percentage": int(final_score * 100),
+        "entropy": round(calculate_entropy(text), 3),
+        "flagged_keywords": all_flagged,
+        "links_found": len(urls),
+        "scan_time_ms": round((time.time() - t0) * 1000, 2)
+    }
+
+def print_result_card(res: dict):
+    verdict = res["verdict"]
+    score = res["risk_percentage"]
+    
+    if verdict == "phishing":
+        badge = f"{C_BOLD}{BG_RED} 🚨 BAHAYA PHISHING / CRITICAL RISK {C_RESET}"
+        score_color = f"{C_RED}{C_BOLD}"
+    elif verdict == "suspicious":
+        badge = f"{C_BOLD}{BG_YELLOW} ⚠️ MENCURIGAKAN / SUSPICIOUS {C_RESET}"
+        score_color = f"{C_YELLOW}{C_BOLD}"
+    else:
+        badge = f"{C_BOLD}{BG_GREEN} 🟢 AMAN / VERIFIED SAFE {C_RESET}"
+        score_color = f"{C_GREEN}{C_BOLD}"
+
+    print("-" * 65)
+    print(f"  {badge}")
+    print(f"  Risk Score : {score_color}{score}%{C_RESET}")
+    print(f"  Target     : {C_BOLD}{res['target']}{C_RESET}")
+    print(f"  Tipe Scan  : {res['type']}")
+    print(f"  Entropi    : {res['entropy']}")
+    print(f"  Waktu Scan : {res['scan_time_ms']} ms")
+
+    if res.get("flagged_keywords"):
+        kw_str = ", ".join([f"{C_RED}{k}{C_RESET}" for k in res['flagged_keywords']])
+        print(f"  Kata Kunci : {kw_str}")
+
+    if res.get("has_ip"):
+        print(f"  Peringatan : {C_RED}Domain menggunakan Alamat IP Mentah (indikasi spoofing){C_RESET}")
+    if res.get("tld_risk"):
+        print(f"  Peringatan : {C_YELLOW}Menggunakan Top-Level Domain (TLD) berisiko tinggi{C_RESET}")
+
+    print("-" * 65)
+    if verdict != "safe":
+        print(f"{C_RED}{C_BOLD}🛡️ REKOMENDASI PERTAHANAN:{C_RESET}")
+        print(f"  1. JANGAN memasukkan kata sandi, PIN ATM, atau kode OTP pada halaman ini.")
+        print(f"  2. Waspadai teknik manipulasi psikologis (urgensi palsu atau ancaman).")
+        print(f"  3. Verifikasi tautan resmi langsung melalui saluran komunikasi resmi institusi terkait.")
+    else:
+        print(f"{C_GREEN}🛡️ Tautan / Pesan terverifikasi wajar dan aman.{C_RESET}")
+    print("-" * 65)
+    print()
+
+def interactive_loop():
+    print(BANNER)
+    while True:
+        print(f"{C_CYAN}{C_BOLD}[MENU PEMINDAIAN KEAMANAN]{C_RESET}")
+        print("  1. 🔗 Pindai URL / Link Website")
+        print("  2. ✉️ Pindai Teks Pesan (Email / SMS / WhatsApp)")
+        print("  3. 🚀 Buka Web App GUI di Browser")
+        print("  4. 🚪 Keluar")
+        print()
+        
+        choice = input(f"{C_BOLD}Pilih opsi [1-4]: {C_RESET}").strip()
+        
+        if choice == "1":
+            target = input(f"\n{C_BOLD}Masukkan URL target: {C_RESET}").strip()
+            if target:
+                print(f"\n{C_GRAY}⏳ Memindai domain, struktur URL, dan basis data ancaman...{C_RESET}")
+                res = scan_url_heuristics(target)
+                print_result_card(res)
+        elif choice == "2":
+            text = input(f"\n{C_BOLD}Masukkan teks pesan: {C_RESET}").strip()
+            if text:
+                print(f"\n{C_GRAY}⏳ Menganalisis pola NLP rekayasa sosial dan urgensi...{C_RESET}")
+                res = scan_text_heuristics(text, "EMAIL/SMS")
+                print_result_card(res)
+        elif choice == "3":
+            print(f"\n{C_GREEN}Membuka https://mocherik.github.io/phishguard/ di browser...{C_RESET}")
+            if sys.platform == "darwin":
+                os.system("open https://mocherik.github.io/phishguard/")
+            else:
+                os.system("xdg-open https://mocherik.github.io/phishguard/ 2>/dev/null || sensible-browser https://mocherik.github.io/phishguard/")
+            print()
+        elif choice in ("4", "q", "exit", "keluar"):
+            print(f"\n{C_CYAN}Terima kasih telah menggunakan PhishGuard CLI! 👋{C_RESET}\n")
+            break
+        else:
+            print(f"{C_RED}Opsi tidak valid.{C_RESET}\n")
+
+def main():
+    args = sys.argv[1:]
+    
+    if not args:
+        interactive_loop()
+        return
+
+    cmd = args[0].lower()
+
+    if cmd in ("-h", "--help", "help"):
+        print(BANNER)
+        print(f"{C_BOLD}PENGGUNAAN:{C_RESET}")
+        print("  phishguard                     Mode interaktif terminal (dashboard)")
+        print("  phishguard scan <target>       Deteksi otomatis apakah target adalah URL atau Teks")
+        print("  phishguard url <url>           Pindai spesifik URL / Website")
+        print("  phishguard text \"<pesan>\"      Pindai teks pesan email/SMS untuk social engineering")
+        print("  phishguard --json <target>     Keluarkan hasil dalam format JSON mentah (untuk CI/CD)")
+        print()
+        return
+
+    if cmd == "--json":
+        if len(args) < 2:
+            print(json.dumps({"error": "Target required"}))
+            sys.exit(1)
+        target = " ".join(args[1:])
+        if target.startswith("http://") or target.startswith("https://") or "." in target.split()[0]:
+            res = scan_url_heuristics(target)
+        else:
+            res = scan_text_heuristics(target)
+        print(json.dumps(res, indent=2))
+        return
+
+    if cmd in ("scan", "url"):
+        target = " ".join(args[1:]) if len(args) > 1 else ""
+        if not target:
+            print(f"{C_RED}Target URL/Teks wajib diisi. Contoh: phishguard scan https://bca-login.xyz{C_RESET}")
+            sys.exit(1)
+        if target.startswith("http://") or target.startswith("https://") or "." in target.split()[0]:
+            res = scan_url_heuristics(target)
+        else:
+            res = scan_text_heuristics(target)
+        print(BANNER)
+        print_result_card(res)
+        return
+
+    if cmd == "text":
+        text = " ".join(args[1:]) if len(args) > 1 else ""
+        if not text:
+            print(f"{C_RED}Teks wajib diisi. Contoh: phishguard text \"Akun diblokir, klik link\"{C_RESET}")
+            sys.exit(1)
+        res = scan_text_heuristics(text)
+        print(BANNER)
+        print_result_card(res)
+        return
+
+    # Direct scan if argument is passed directly without subcommand
+    target = " ".join(args)
+    if target.startswith("http://") or target.startswith("https://") or ("." in target and " " not in target):
+        res = scan_url_heuristics(target)
+    else:
+        res = scan_text_heuristics(target)
+    print(BANNER)
+    print_result_card(res)
+
+if __name__ == "__main__":
+    main()
