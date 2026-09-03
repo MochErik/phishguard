@@ -10,12 +10,13 @@ INSTALL_DIR="$HOME/.local/bin"
 mkdir -p "$INSTALL_DIR"
 
 TARGET="$INSTALL_DIR/phishguard"
-URL="https://raw.githubusercontent.com/MochErik/phishguard/main/bin/phishguard"
+URL_API="https://api.github.com/repos/MochErik/phishguard/contents/bin/phishguard"
+URL_RAW="https://raw.githubusercontent.com/MochErik/phishguard/main/bin/phishguard"
 
 if command -v curl &> /dev/null; then
-    curl -fsSL "$URL" -o "$TARGET"
+    curl -fsSL -H "Accept: application/vnd.github.raw" "$URL_API" -o "$TARGET" || curl -fsSL "$URL_RAW" -o "$TARGET"
 elif command -v wget &> /dev/null; then
-    wget -qO "$TARGET" "$URL"
+    wget -qO "$TARGET" --header="Accept: application/vnd.github.raw" "$URL_API" || wget -qO "$TARGET" "$URL_RAW"
 else
     echo "❌ Error: curl or wget is required."
     exit 1
