@@ -1,0 +1,7 @@
+{
+  "name": "@phishguard/threat-intel",
+  "version": "2.0.0",
+  "description": "PhishGuard Threat Intelligence Signature Database",
+  "main": "index.json",
+  "license": "MIT"
+}

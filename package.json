@@ -1,0 +1,23 @@
+{
+  "name": "phishguard-monorepo",
+  "version": "2.0.0",
+  "private": true,
+  "description": "PhishGuard — Enterprise AI Multi-Vector Phishing & Social Engineering Detection Monorepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bash scripts/start-dev.sh",
+    "build": "bash scripts/build-all.sh",
+    "test": "bash scripts/test-all.sh",
+    "deploy:vercel": "bash scripts/deploy-vercel.sh",
+    "deploy:pages": "bash scripts/deploy-gh-pages.sh",
+    "package": "bash scripts/package-zip.sh"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "author": "Moch. Erik Irriansyah (NIM 04123003 — Universitas Narotama)",
+  "license": "MIT"
+}

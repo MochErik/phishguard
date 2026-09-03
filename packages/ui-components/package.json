@@ -1,0 +1,7 @@
+{
+  "name": "@phishguard/ui-components",
+  "version": "2.0.0",
+  "description": "Tactile UI Design Tokens & Badges for PhishGuard",
+  "main": "src/index.ts",
+  "license": "MIT"
+}

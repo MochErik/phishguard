@@ -1,0 +1,12 @@
+{
+  "updated_at": "2026-09-03T04:40:00Z",
+  "high_risk_tlds": [
+    ".xyz", ".top", ".club", ".work", ".click", ".link", ".surf",
+    ".buzz", ".cfd", ".sbs", ".rest", ".fit", ".monster", ".icu"
+  ],
+  "brand_spoof_targets": [
+    "bca", "bri", "mandiri", "bni", "cimb", "permata", "dana", "ovo",
+    "gopay", "shopeepay", "tokopedia", "bukalapak", "shopee", "lazada",
+    "paypal", "apple", "google", "microsoft", "netflix", "facebook", "instagram"
+  ]
+}

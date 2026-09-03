@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  phishguard-api:
+    build:
+      context: ../
+      dockerfile: deployments/Dockerfile.backend
+    container_name: phishguard-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+      - DATABASE_URL=sqlite+aiosqlite:///./phishguard.db
+      - REDIS_URL=memory://
+    volumes:
+      - api-data:/app/data
+
+  phishguard-web:
+    build:
+      context: ../
+      dockerfile: deployments/Dockerfile.frontend
+    container_name: phishguard-web
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - phishguard-api
+
+volumes:
+  api-data:

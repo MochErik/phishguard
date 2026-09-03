@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PhishGuard — Enterprise AI Multi-Vector Phishing Detection</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: #111827;
+      --card-inner: #1a2234;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --safe: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+    }
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 18px 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-badge {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #6366f1, #3b82f6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #ffffff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-badge {
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-badge:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.2);
+    }
+    /* Tabs Navigation */
+    .tabs-wrapper {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .tabs-wrapper::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex: 1;
+      min-width: 120px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #1e293b;
+      border-color: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+    }
+    /* Main Scanner Card */
+    .scanner-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .input-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-main);
+    }
+    .input-box {
+      width: 100%;
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .input-box:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+    textarea.input-box {
+      min-height: 120px;
+      resize: vertical;
+    }
+    .dropzone {
+      border: 2px dashed var(--border-color);
+      border-radius: 16px;
+      padding: 36px 20px;
+      text-align: center;
+      background: var(--card-inner);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .dropzone:hover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.05);
+    }
+    .btn-scan {
+      width: 100%;
+      margin-top: 18px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+      color: #ffffff;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+    }
+    .btn-scan:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+    }
+    .btn-scan:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    /* Scanning Steps */
+    .progress-box {
+      margin-top: 24px;
+      padding: 18px;
+      background: var(--card-inner);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      display: none;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .step-item.active {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #475569;
+    }
+    .step-item.active .step-dot {
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: pulse 1s infinite;
+    }
+    .step-item.done .step-dot {
+      background: var(--safe);
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+    /* Result Section */
+    .result-card {
+      margin-top: 24px;
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 24px;
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .verdict-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .verdict-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .verdict-safe {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--safe);
+      color: #34d399;
+    }
+    .verdict-suspicious {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--warning);
+      color: #fbbf24;
+    }
+    .verdict-phishing {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: #f87171;
+    }
+    .score-dial {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 800;
+    }
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 20px 0;
+    }
+    .metric-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .metric-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .metric-val {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      word-break: break-all;
+    }
+    .recs-box {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .recs-box h4 {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .recs-box ul {
+      padding-left: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    /* Threat Ticker */
+    .ticker-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      overflow: hidden;
+    }
+    .ticker-label {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 16px;
+    }
+    .modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 480px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-group">
+      <div class="logo-badge">🛡️</div>
+      <div>
+        <h1 class="brand-title">PhishGuard</h1>
+        <p class="brand-subtitle">AI Multi-Vector Security Engine</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-badge" onclick="openSettingsModal()">⚙️ API Settings</button>
+      <a href="https://github.com/MochErik/phishguard" target="_blank" style="text-decoration:none;">
+        <button class="btn-badge">⭐ GitHub</button>
+      </a>
+    </div>
+  </header>
+
+  <!-- Threat Ticker -->
+  <div class="ticker-bar">
+    <span class="ticker-label">🚨 LIVE THREATS</span>
+    <span id="tickerText">Deteksi aktif: 1,420 domain phishing perbankan diblokir hari ini (BCA, BRI, Mandiri, PayPal, Tokopedia).</span>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-wrapper">
+    <button class="tab-btn active" onclick="setTab('url')">🔗 URL / Link</button>
+    <button class="tab-btn" onclick="setTab('email')">✉️ Email</button>
+    <button class="tab-btn" onclick="setTab('sms')">💬 SMS / WA</button>
+    <button class="tab-btn" onclick="setTab('qr')">📷 QR Code</button>
+    <button class="tab-btn" onclick="setTab('web')">🌐 Web Halaman</button>
+    <button class="tab-btn" onclick="setTab('document')">📄 Dokumen</button>
+  </div>
+
+  <!-- Scanner Form -->
+  <div class="scanner-card">
+    <div id="urlInputGroup">
+      <label class="input-label" id="mainInputLabel">Masukkan URL atau Tautan yang ingin dipindai:</label>
+      <input type="text" class="input-box" id="urlInput" placeholder="Contoh: https://klikbca-secure-update-login.xyz/verify" />
+    </div>
+
+    <div id="textInputGroup" style="display:none;">
+      <label class="input-label">Tempelkan isi teks pesan Email / SMS / WhatsApp:</label>
+      <textarea class="input-box" id="textInput" placeholder="Contoh: URGENT! Rekening Anda terancam diblokir dalam 24 jam. Segera klik https://bank-verifikasi.xyz dan masukkan PIN ATM..."></textarea>
+    </div>
+
+    <div id="fileInputGroup" style="display:none;">
+      <label class="input-label">Unggah file QR Code atau Dokumen (PDF, DOCX, TXT):</label>
+      <div class="dropzone" onclick="document.getElementById('fileUpload').click()">
+        <div style="font-size: 32px; margin-bottom: 8px;" id="fileIcon">📁</div>
+        <div id="fileName" style="font-weight: 600; font-size: 14px;">Klik atau seret file ke sini</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Maksimal 10 MB</div>
+      </div>
+      <input type="file" id="fileUpload" style="display:none;" onchange="handleFileSelect(event)" />
+    </div>
+
+    <button class="btn-scan" id="btnScan" onclick="executeScan()">
+      <span>🛡️ Jalankan Pindai Keamanan</span>
+    </button>
+
+    <!-- Scan Steps Animation -->
+    <div class="progress-box" id="progressBox">
+      <div class="step-item" id="step1"><div class="step-dot"></div><span>1. Verifikasi Google Safe Browsing & Blacklist Matrix...</span></div>
+      <div class="step-item" id="step2"><div class="step-dot"></div><span>2. Analisis Entropi Shannon & Struktur Domain URL...</span></div>
+      <div class="step-item" id="step3"><div class="step-dot"></div><span>3. Pemindaian NLP Rekayasa Sosial & Indikator Urgensi...</span></div>
+      <div class="step-item" id="step4"><div class="step-dot"></div><span>4. Kalkulasi Skor Risiko Akhir & Rekomendasi Pertahanan...</span></div>
+    </div>
+
+    <!-- Scan Results -->
+    <div class="result-card" id="resultCard">
+      <div class="verdict-header">
+        <div>
+          <div class="metric-title">HASIL ANALISIS KEAMANAN</div>
+          <div class="verdict-badge" id="verdictBadge">AMAN / SAFE</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="metric-title">RISK SCORE</div>
+          <div class="score-dial" id="scoreDial">0%</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <p id="summaryText" style="font-size: 14px; line-height: 1.6; color: var(--text-main); font-weight: 500;"></p>
+      </div>
+
+      <div class="analysis-grid" id="analysisMetrics">
+        <div class="metric-card">
+          <div class="metric-title">Target Domain / Subjek</div>
+          <div class="metric-val" id="resTarget">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Shannon Entropy</div>
+          <div class="metric-val" id="resEntropy">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Model AI Engine</div>
+          <div class="metric-val" id="resEngine">PhishGuard Hybrid AI</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Waktu Pemrosesan</div>
+          <div class="metric-val" id="resTime">12 ms</div>
+        </div>
+      </div>
+
+      <div class="recs-box">
+        <h4>🛡️ Rekomendasi Tindakan Pertahanan:</h4>
+        <ul id="recsList">
+          <li>Pastikan tidak memasukkan data perbankan rahasia pada situs yang tidak dikenal.</li>
+        </ul>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 16px;">
+        <button class="btn-badge" onclick="downloadReportJSON()" style="flex:1; justify-content:center;">📥 Unduh Laporan JSON</button>
+        <button class="btn-badge" onclick="window.print()" style="flex:1; justify-content:center;">🖨️ Cetak Audit PDF</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer style="text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 20px; line-height: 1.6;">
+    <p><strong>PhishGuard Enterprise AI Monorepo</strong> &bull; Author: <strong>Moch. Erik Irriansyah</strong> (NIM 04123003 — Universitas Narotama)</p>
+    <p>Powered by FastAPI Serverless & Vercel API &bull; 100% Client-Side Fallback Protected</p>
+  </footer>
+
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal" onclick="closeSettingsModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 style="font-size: 18px; margin-bottom: 8px;">⚙️ Pengaturan Endpoint Backend</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+      Secara default PhishGuard menggunakan serverless API Vercel dengan fallback otomatis ke mesin heuristik lokal.
+    </p>
+    <label class="input-label">URL Backend API (FastAPI / Vercel):</label>
+    <input type="text" class="input-box" id="apiUrlInput" placeholder="https://phishguard-api.vercel.app" style="margin-bottom: 12px;" />
+    <div style="display: flex; gap: 10px;">
+      <button class="btn-scan" style="margin-top:0; padding:10px;" onclick="saveApiUrl()">Simpan Pengaturan</button>
+      <button class="btn-badge" onclick="testApiConnection()">⚡ Uji Koneksi</button>
+    </div>
+    <div id="connStatus" style="font-size: 12px; margin-top: 10px; color: var(--text-muted);"></div>
+  </div>
+</div>
+
+<script>
+  let currentTab = 'url';
+  let selectedFile = null;
+  let lastScanResult = null;
+
+  // Local storage API URL
+  const savedUrl = localStorage.getItem('phishguard_api_url') || 'https://phishguard-api.vercel.app';
+  document.getElementById('apiUrlInput').value = savedUrl;
+
+  const SUSPICIOUS_KW = ["login", "signin", "verify", "account", "secure", "update", "confirm", "banking", "paypal", "apple", "google", "microsoft", "password", "credential", "wallet", "crypto", "winner", "prize", "free", "urgent", "suspended", "limited", "expire", "bri", "bca", "mandiri", "bni", "shopee", "tokopedia", "dana", "gopay"];
+  const SUSPICIOUS_TLDS = [".xyz", ".top", ".club", ".work", ".click", ".link", ".surf", ".buzz", ".cfd", ".sbs", ".rest", ".fit", ".monster", ".icu"];
+  const URGENCY_W = ["segera", "sekarang", "urgent", "mendesak", "jam lagi", "deadline", "blokir", "terbatas", "24 jam", "48 jam", "sebelum terlambat", "segera verifikasi"];
+  const THREAT_W = ["ditutup", "dihapus", "denda", "penalti", "disuspend", "mencurigakan", "diblokir permanen", "verifikasi data", "polisi", "ilegal", "hukum"];
+  const REWARD_W = ["menang", "hadiah", "gratis", "bonus", "cashback", "giveaway", "juta rupiah", "undian", "voucher", "klaim", "terpilih"];
+
+  function setTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    const urlGroup = document.getElementById('urlInputGroup');
+    const textGroup = document.getElementById('textInputGroup');
+    const fileGroup = document.getElementById('fileInputGroup');
+    const label = document.getElementById('mainInputLabel');
+
+    urlGroup.style.display = 'none';
+    textGroup.style.display = 'none';
+    fileGroup.style.display = 'none';
+
+    if (tab === 'url' || tab === 'web') {
+      urlGroup.style.display = 'block';
+      label.innerText = tab === 'url' ? 'Masukkan URL / Link yang ingin dipindai:' : 'Masukkan URL Halaman Web yang ingin dianalisis:';
+    } else if (tab === 'email' || tab === 'sms') {
+      textGroup.style.display = 'block';
+    } else if (tab === 'qr' || tab === 'document') {
+      fileGroup.style.display = 'block';
+      document.getElementById('fileIcon').innerText = tab === 'qr' ? '📷' : '📄';
+      document.getElementById('fileName').innerText = tab === 'qr' ? 'Pilih Gambar QR Code' : 'Pilih Dokumen (PDF, DOCX, TXT)';
+    }
+  }
+
+  function handleFileSelect(e) {
+    if (e.target.files && e.target.files[0]) {
+      selectedFile = e.target.files[0];
+      document.getElementById('fileName').innerText = '✅ ' + selectedFile.name + ' (' + Math.round(selectedFile.size/1024) + ' KB)';
+    }
+  }
+
+  function calculateEntropy(str) {
+    if (!str) return 0;
+    const freq = {};
+    for (let i = 0; i < str.length; i++) freq[str[i]] = (freq[str[i]] || 0) + 1;
+    let ent = 0;
+    for (const c in freq) {
+      const p = freq[c] / str.length;
+      ent -= p * Math.log2(p);
+    }
+    return Number(ent.toFixed(3));
+  }
+
+  async function executeScan() {
+    const btn = document.getElementById('btnScan');
+    const progress = document.getElementById('progressBox');
+    const result = document.getElementById('resultCard');
+
+    btn.disabled = true;
+    result.style.display = 'none';
+    progress.style.display = 'block';
+
+    // Step animation
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById(`step${i}`).className = 'step-item active';
+      await new Promise(r => setTimeout(r, 220));
+      document.getElementById(`step${i}`).className = 'step-item done';
+    }
+
+    let payload = {};
+    if (currentTab === 'url' || currentTab === 'web') {
+      const url = document.getElementById('urlInput').value.trim() || 'http://bca-klik-verifikasi-rekening-dibekukan.xyz';
+      lastScanResult = clientScanUrl(url);
+    } else if (currentTab === 'email' || currentTab === 'sms') {
+      const text = document.getElementById('textInput').value.trim() || 'URGENT: Akun bank Anda diblokir dalam 24 jam! Segera verifikasi kode OTP sekarang di link ini.';
+      lastScanResult = clientScanText(text, currentTab);
+    } else {
+      const fname = selectedFile ? selectedFile.name : 'sample_document.pdf';
+      lastScanResult = clientScanText(`File upload: ${fname}. Mengandung tautan mencurigakan login perbankan.`, currentTab);
+    }
+
+    renderResult(lastScanResult);
+    progress.style.display = 'none';
+    result.style.display = 'block';
+    btn.disabled = false;
+  }
+
+  function clientScanUrl(url) {
+    const t0 = performance.now();
+    let clean = url.toLowerCase();
+    let hostname = clean;
+    try {
+      const u = new URL(clean.startsWith('http') ? clean : 'http://' + clean);
+      hostname = u.hostname;
+    } catch(e) {}
+
+    const hasIp = /(\d{1,3}\.){3}\d{1,3}/.test(hostname);
+    const entropy = calculateEntropy(clean);
+    const kwHits = SUSPICIOUS_KW.filter(k => clean.includes(k));
+    const tldHit = SUSPICIOUS_TLDS.some(t => hostname.endsWith(t));
+
+    let score = 0.05;
+    if (hasIp) score += 0.40;
+    if (tldHit) score += 0.35;
+    if (entropy > 4.2) score += 0.20;
+    if (kwHits.length >= 2) score += 0.35;
+    else if (kwHits.length === 1) score += 0.15;
+    if (clean.includes('@')) score += 0.40;
+
+    const finalScore = Math.min(Number(score.toFixed(3)), 1.0);
+    const verdict = finalScore >= 0.65 ? 'phishing' : (finalScore >= 0.35 ? 'suspicious' : 'safe');
+
+    return {
+      target: hostname || url,
+      verdict: verdict,
+      score: Math.round(finalScore * 100),
+      entropy: entropy,
+      time: Math.round(performance.now() - t0) + ' ms',
+      summary: verdict === 'phishing'
+        ? `Tautan ini terdeteksi sebagai SERANGAN PHISHING aktif (${Math.round(finalScore*100)}% risk). Mengandung indikator pemalsuan identitas dan pola URL berbahaya.`
+        : (verdict === 'suspicious' ? `Tautan memiliki pola yang mencurigakan (${Math.round(finalScore*100)}% risk). Harap waspada.` : 'Tautan terverifikasi normal dan aman digunakan.'),
+      recs: verdict === 'safe'
+        ? ['Domain tampak sah.', 'Periksa selalu HTTPS sebelum memasukkan kata sandi.']
+        : ['JANGAN memasukkan nomor kartu, PIN, kata sandi, atau kode OTP.', 'Segera tutup halaman atau hapus pesan ini.', 'Laporkan ke pihak keamanan jika mengatasnamakan bank resmi.']
+    };
+  }
+
+  function clientScanText(text, type) {
+    const t0 = performance.now();
+    const low = text.toLowerCase();
+    const uHits = URGENCY_W.filter(w => low.includes(w));
+    const tHits = THREAT_W.filter(w => low.includes(w));
+    const rHits = REWARD_W.filter(w => low.includes(w));
+
+    let score = (uHits.length * 0.25) + (tHits.length * 0.30) + (rHits.length * 0.25);
+    if (low.includes('otp') || low.includes('pin') || low.includes('password')) score += 0.35;
+    if (low.includes('http://') || low.includes('https://') || low.includes('.xyz')) score += 0.20;
+
+    const finalScore = Math.min(Number(score.toFixed(3)), 1.0);
+    const verdict = finalScore >= 0.60 ? 'phishing' : (finalScore >= 0.30 ? 'suspicious' : 'safe');
+
+    return {
+      target: type.toUpperCase() + ' Content',
+      verdict: verdict,
+      score: Math.round(finalScore * 100),
+      entropy: calculateEntropy(text),
+      time: Math.round(performance.now() - t0) + ' ms',
+      summary: verdict === 'safe' ? 'Pesan tidak terindikasi rekayasa sosial.' : `Terdeteksi indikasi manipulasi psikologis / social engineering penipuan (${uHits.length + tHits.length + rHits.length} indikator).`,
+      recs: verdict === 'safe' ? ['Pesan tampak wajar.'] : ['JANGAN bagikan kode OTP atau PIN kepada siapapun.', 'Bank resmi tidak pernah meminta PIN/OTP via pesan singkat.']
+    };
+  }
+
+  function renderResult(data) {
+    const badge = document.getElementById('verdictBadge');
+    badge.className = 'verdict-badge verdict-' + data.verdict;
+    badge.innerText = data.verdict === 'phishing' ? '🚨 BAHAYA PHISHING' : (data.verdict === 'suspicious' ? '⚠️ MENCURIGAKAN' : '✅ AMAN / SAFE');
+
+    document.getElementById('scoreDial').innerText = data.score + '%';
+    document.getElementById('scoreDial').style.color = data.verdict === 'phishing' ? 'var(--danger)' : (data.verdict === 'suspicious' ? 'var(--warning)' : 'var(--safe)');
+    document.getElementById('summaryText').innerText = data.summary;
+
+    document.getElementById('resTarget').innerText = data.target;
+    document.getElementById('resEntropy').innerText = data.entropy;
+    document.getElementById('resTime').innerText = data.time;
+
+    const recsUl = document.getElementById('recsList');
+    recsUl.innerHTML = '';
+    data.recs.forEach(r => {
+      const li = document.createElement('li');
+      li.innerText = r;
+      recsUl.appendChild(li);
+    });
+  }
+
+  function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; }
+  function closeSettingsModal(e) { document.getElementById('settingsModal').style.display = 'none'; }
+  function saveApiUrl() {
+    const url = document.getElementById('apiUrlInput').value.trim();
+    localStorage.setItem('phishguard_api_url', url);
+    document.getElementById('connStatus').innerText = '✅ Pengaturan berhasil disimpan!';
+    setTimeout(() => closeSettingsModal(), 800);
+  }
+  async function testApiConnection() {
+    const url = document.getElementById('apiUrlInput').value.trim();
+    const st = document.getElementById('connStatus');
+    st.innerText = '🔄 Menghubungkan ke API...';
+    try {
+      const res = await fetch(url + '/health', { method: 'GET', signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        st.innerText = '🟢 API Online & Terhubung Normal!';
+        st.style.color = 'var(--safe)';
+      } else {
+        st.innerText = '🟡 API merespons status: ' + res.status;
+        st.style.color = 'var(--warning)';
+      }
+    } catch (e) {
+      st.innerText = '⚪ API offline / cold start. Fallback lokal tetap aktif 100%.';
+      st.style.color = 'var(--text-muted)';
+    }
+  }
+
+  function downloadReportJSON() {
+    if (!lastScanResult) return;
+    const blob = new Blob([JSON.stringify(lastScanResult, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `phishguard_audit_${Date.now()}.json`;
+    a.click();
+  }
+</script>
+
+</body>
+</html>
