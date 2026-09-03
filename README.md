@@ -2,28 +2,10 @@
 
 > **Enterprise-Grade AI Multi-Vector Threat Intelligence & Social Engineering Defense Engine**  
 > **UI Aesthetic**: Dark Tactical Cyber-Security Glassmorphism (`#090d16` / `#111827` / `#6366f1` / `#10b981`)  
-> **Target Devices**: 100% Fit di iPhone (Termasuk iPhone 12 Mini & Dynamic Island), Android, iPad, MacBook, Laptop, & PC Widescreen  
+> **Target Devices**: All Device  
 > **Live Frontend App**: [https://mocherik.github.io/phishguard/](https://mocherik.github.io/phishguard/)  
 > **Live Backend API**: [https://phishguard-api.vercel.app](https://phishguard-api.vercel.app) *(Vercel Serverless ASGI)*  
 > **Author**: Moch. Erik Irriansyah (NIM 04123003 — Universitas Narotama)
-
----
-
-## 🛡️ Laporan Audit Keamanan & Proteksi Sistem (Security & Threat Assessment)
-
-Aplikasi **PhishGuard v2.0** dibangun dengan kepatuhan terhadap standar industri **OWASP Top 10 for Web Applications & API Security**, pengujian penetrasi statis (*Static Application Security Testing - SAST*), serta mekanisme mitigasi serangan rekayasa sosial mutakhir (*AI-Powered Social Engineering & Quishing Defense*).
-
-### 📋 Matriks Hasil Pengujian Keamanan:
-
-| Kategori Pengujian | Vektor Serangan (*Attack Vector*) | Mekanisme Pertahanan (*Security Defense*) | Status Hasil Uji |
-|---|---|---|:---:|
-| **Zero-Day Phishing URL** | Typosquatting, IDN Homograph Attack, Subdomain Chaining, TLD Berisiko Tinggi (`.xyz`, `.top`, `.icu`) | **Shannon Entropy Calculator & Heuristic Engine**: Menganalisis keacakan karakter, rasio subnet IP, dan pola subdomain berlapis sebelum eksekusi browser. | 🟢 **100% SAFE (PASSED)** |
-| **Social Engineering NLP** | Urgensi Palsu, Ancaman Pemblokiran Rekening, Penipuan Hadiah, Pencurian OTP/PIN | **NLP Psychological Manipulation Classifier**: Deteksi kata pemicu panik (*Urgency Scorer*), ancaman sanksi (*Threat Scorer*), dan iming-iming hadiah (*Reward Scorer*). | 🟢 **100% SAFE (PASSED)** |
-| **Quishing (QR Phishing)** | QR Code terselubung pada poster/email fisik menuju phishing site | **Image QR Matrix Decoder & URL Payload Extractor**: Membaca kode QR secara terisolasi di memori tanpa membuka browser (*sandboxed decode*). | 🟢 **100% SAFE (PASSED)** |
-| **Document Link Injection** | PDF / DOCX dengan link phishing terselubung dan macro payload | **Document Parser & Embedded Link Inspector**: Ekstraksi seluruh teks dan hyperlink dari file PDF/DOCX tanpa mengeksekusi skrip aktif. | 🟢 **100% SAFE (PASSED)** |
-| **API Abuse & Brute Force** | DoS, Token Scraping, API Flooding | **Distributed Token-Bucket Rate Limiter (`SlowAPI` & Edge Gateway)**: Pembatasan ketat 200 request/jam per IP publik untuk mencegah automated abuse. | 🟢 **100% SAFE (PASSED)** |
-| **Data Privacy & Telemetry** | Log Kredensial Pengguna, Kebocoran Data Pribadi | **Zero-Telemetry Policy & Ephemeral Processing**: Teks dan dokumen yang dipindai diproses secara transient di memori RAM dan tidak pernah disimpan ke disk permanen. | 🟢 **100% SAFE (PASSED)** |
-| **CORS & Header Security** | Cross-Origin Data Leak, Clickjacking, MIME-Sniffing | Strict CORS policy allowing verified origins, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. | 🟢 **100% SAFE (PASSED)** |
 
 ---
 
