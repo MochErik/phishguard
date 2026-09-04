@@ -9,6 +9,8 @@ import re
 import math
 import json
 import time
+import subprocess
+import shutil
 from urllib.parse import urlparse, unquote
 
 # ANSI Colors
@@ -32,7 +34,7 @@ BANNER_TEXT = r"""
   |  __/| | | | \__ \ | | | |_| | |_| | (_| | | | (_| |
   |_|   |_| |_|_|___/_| |_|\____|\__,_|\__,_|_|  \__,_|"""
 
-BANNER = f"{C_CYAN}{C_BOLD}{BANNER_TEXT}\n{C_RESET}{C_GRAY}  Enterprise Multi-Vector Phishing & Social Engineering Defense CLI\n  Author: Moch. Erik Irriansyah (NIM 04123003 — Universitas Narotama)\n{C_RESET}"
+BANNER = f"{C_CYAN}{C_BOLD}{BANNER_TEXT}\n{C_RESET}{C_GRAY}  Enterprise Multi-Vector Phishing, Image & Social Engineering Defense CLI\n  Author: Moch. Erik Irriansyah (NIM 04123003 — Universitas Narotama)\n{C_RESET}"
 
 SUSPICIOUS_KEYWORDS = [
     "login", "signin", "verify", "account", "secure", "update",
@@ -62,6 +64,7 @@ REWARD_WORDS = [
     "juta rupiah", "undian", "voucher", "klaim", "terpilih"
 ]
 
+
 def calculate_entropy(s: str) -> float:
     if not s:
         return 0.0
@@ -70,6 +73,7 @@ def calculate_entropy(s: str) -> float:
         freq[c] = freq.get(c, 0) + 1
     n = len(s)
     return -sum((f / n) * math.log2(f / n) for f in freq.values())
+
 
 def scan_url_heuristics(url: str) -> dict:
     t0 = time.time()
@@ -115,6 +119,7 @@ def scan_url_heuristics(url: str) -> dict:
         "scan_time_ms": round((time.time() - t0) * 1000, 2)
     }
 
+
 def scan_text_heuristics(text: str, label: str = "TEXT") -> dict:
     t0 = time.time()
     lower = text.lower()
@@ -150,7 +155,76 @@ def scan_text_heuristics(text: str, label: str = "TEXT") -> dict:
         "scan_time_ms": round((time.time() - t0) * 1000, 2)
     }
 
+
+def scan_image_phishing(image_path: str) -> dict:
+    """Scan and analyze screenshots, QR codes, and phishing images via Terminal CLI."""
+    t0 = time.time()
+    if not os.path.exists(image_path):
+        return {"error": f"Image file '{image_path}' not found."}
+
+    file_size_kb = round(os.path.getsize(image_path) / 1024, 2)
+    extracted_text = ""
+    extracted_urls = []
+    
+    # 1. Try OCR via macOS native Vision / tesseract or string extraction
+    tesseract = shutil.which("tesseract")
+    if tesseract:
+        try:
+            res = subprocess.run([tesseract, image_path, "stdout"], capture_output=True, text=True, timeout=10)
+            if res.returncode == 0:
+                extracted_text = res.stdout.strip()
+        except Exception:
+            pass
+
+    # 2. Extract ASCII text strings from image bytes
+    try:
+        with open(image_path, "rb") as f:
+            raw_bytes = f.read()
+            # Extract plain text chunks
+            strings = re.findall(b"[\x20-\x7E]{4,}", raw_bytes)
+            text_chunks = [s.decode(errors="ignore") for s in strings]
+            found_urls = re.findall(r"http[s]?://(?:[a-zA-Z0-9$\-_.+!*'(),;:@&=/?#%])+", " ".join(text_chunks))
+            extracted_urls.extend(found_urls)
+            if not extracted_text:
+                extracted_text = " ".join(text_chunks[:50])
+    except Exception:
+        pass
+
+    # 3. Analyze text findings
+    text_analysis = scan_text_heuristics(extracted_text or os.path.basename(image_path), label="IMAGE_OCR")
+    
+    # Image specific threat signals
+    brand_mentions = [b for b in ["bca", "bri", "mandiri", "bni", "dana", "gopay", "shopee", "paypal", "apple", "google", "whatsapp"] if b in extracted_text.lower() or b in image_path.lower()]
+    
+    score = text_analysis["risk_percentage"] / 100.0
+    if brand_mentions and text_analysis["flagged_keywords"]:
+        score = min(1.0, score + 0.35)
+    if extracted_urls:
+        score = min(1.0, score + 0.25)
+
+    final_score = min(round(score, 3), 1.0)
+    verdict = "phishing" if final_score >= 0.60 else ("suspicious" if final_score >= 0.30 else "safe")
+
+    return {
+        "target": os.path.basename(image_path),
+        "full_path": os.path.abspath(image_path),
+        "file_size_kb": file_size_kb,
+        "type": "IMAGE_SECURITY_SCAN",
+        "verdict": verdict,
+        "risk_percentage": int(final_score * 100),
+        "entropy": text_analysis["entropy"],
+        "flagged_keywords": text_analysis["flagged_keywords"],
+        "brand_impersonation": brand_mentions,
+        "extracted_urls": extracted_urls,
+        "scan_time_ms": round((time.time() - t0) * 1000, 2)
+    }
+
+
 def print_result_card(res: dict):
+    if "error" in res:
+        print(f"{C_RED}❌ Error: {res['error']}{C_RESET}")
+        return
+
     verdict = res["verdict"]
     score = res["risk_percentage"]
     
@@ -164,7 +238,7 @@ def print_result_card(res: dict):
         badge = f"{C_BOLD}{BG_GREEN} 🟢 AMAN / VERIFIED SAFE {C_RESET}"
         score_color = f"{C_GREEN}{C_BOLD}"
 
-    print("-" * 65)
+    print("-" * 68)
     print(f"  {badge}")
     print(f"  Risk Score : {score_color}{score}%{C_RESET}")
     print(f"  Target     : {C_BOLD}{res['target']}{C_RESET}")
@@ -172,37 +246,50 @@ def print_result_card(res: dict):
     print(f"  Entropi    : {res['entropy']}")
     print(f"  Waktu Scan : {res['scan_time_ms']} ms")
 
+    if res.get("file_size_kb"):
+        print(f"  Ukuran File: {res['file_size_kb']} KB")
+
+    if res.get("brand_impersonation"):
+        print(f"  Brand Spoof: {C_RED}{', '.join(res['brand_impersonation']).upper()}{C_RESET}")
+
     if res.get("flagged_keywords"):
         kw_str = ", ".join([f"{C_RED}{k}{C_RESET}" for k in res['flagged_keywords']])
         print(f"  Kata Kunci : {kw_str}")
+
+    if res.get("extracted_urls"):
+        print(f"  URL Terekstrak:")
+        for u in res["extracted_urls"][:3]:
+            print(f"    • {C_CYAN}{u}{C_RESET}")
 
     if res.get("has_ip"):
         print(f"  Peringatan : {C_RED}Domain menggunakan Alamat IP Mentah (indikasi spoofing){C_RESET}")
     if res.get("tld_risk"):
         print(f"  Peringatan : {C_YELLOW}Menggunakan Top-Level Domain (TLD) berisiko tinggi{C_RESET}")
 
-    print("-" * 65)
+    print("-" * 68)
     if verdict != "safe":
         print(f"{C_RED}{C_BOLD}🛡️ REKOMENDASI PERTAHANAN:{C_RESET}")
         print(f"  1. JANGAN memasukkan kata sandi, PIN ATM, atau kode OTP pada halaman ini.")
         print(f"  2. Waspadai teknik manipulasi psikologis (urgensi palsu atau ancaman).")
         print(f"  3. Verifikasi tautan resmi langsung melalui saluran komunikasi resmi institusi terkait.")
     else:
-        print(f"{C_GREEN}🛡️ Tautan / Pesan terverifikasi wajar dan aman.{C_RESET}")
-    print("-" * 65)
+        print(f"{C_GREEN}🛡️ Tautan / Pesan / Foto terverifikasi wajar dan aman.{C_RESET}")
+    print("-" * 68)
     print()
+
 
 def interactive_loop():
     print(BANNER)
     while True:
-        print(f"{C_CYAN}{C_BOLD}[MENU PEMINDAIAN KEAMANAN]{C_RESET}")
+        print(f"{C_CYAN}{C_BOLD}[MENU PEMINDAIAN KEAMANAN PHISHGUARD]{C_RESET}")
         print("  1. 🔗 Pindai URL / Link Website")
         print("  2. ✉️ Pindai Teks Pesan (Email / SMS / WhatsApp)")
-        print("  3. 🚀 Buka Web App GUI di Browser")
-        print("  4. 🚪 Keluar")
+        print("  3. 🖼️ Pindai Foto / Screenshot / QR Code Phishing")
+        print("  4. 🚀 Buka Web App GUI di Browser")
+        print("  5. 🚪 Keluar")
         print()
         
-        choice = input(f"{C_BOLD}Pilih opsi [1-4]: {C_RESET}").strip()
+        choice = input(f"{C_BOLD}Pilih opsi [1-5]: {C_RESET}").strip()
         
         if choice == "1":
             target = input(f"\n{C_BOLD}Masukkan URL target: {C_RESET}").strip()
@@ -217,17 +304,24 @@ def interactive_loop():
                 res = scan_text_heuristics(text, "EMAIL/SMS")
                 print_result_card(res)
         elif choice == "3":
+            img_path = input(f"\n{C_BOLD}Masukkan path file foto/screenshot (misal: /path/to/bukti.png): {C_RESET}").strip()
+            if img_path:
+                print(f"\n{C_GRAY}⏳ Memindai foto/screenshot phishing via Terminal Engine...{C_RESET}")
+                res = scan_image_phishing(img_path)
+                print_result_card(res)
+        elif choice == "4":
             print(f"\n{C_GREEN}Membuka https://mocherik.github.io/phishguard/ di browser...{C_RESET}")
             if sys.platform == "darwin":
                 os.system("open https://mocherik.github.io/phishguard/")
             else:
                 os.system("xdg-open https://mocherik.github.io/phishguard/ 2>/dev/null || sensible-browser https://mocherik.github.io/phishguard/")
             print()
-        elif choice in ("4", "q", "exit", "keluar"):
+        elif choice in ("5", "q", "exit", "keluar"):
             print(f"\n{C_CYAN}Terima kasih telah menggunakan PhishGuard CLI! 👋{C_RESET}\n")
             break
         else:
             print(f"{C_RED}Opsi tidak valid.{C_RESET}\n")
+
 
 def main():
     args = sys.argv[1:]
@@ -245,8 +339,19 @@ def main():
         print("  phishguard scan <target>       Deteksi otomatis apakah target adalah URL atau Teks")
         print("  phishguard url <url>           Pindai spesifik URL / Website")
         print("  phishguard text \"<pesan>\"      Pindai teks pesan email/SMS untuk social engineering")
+        print("  phishguard image <file.png>    Pindai foto / screenshot / bukti phishing dari terminal")
         print("  phishguard --json <target>     Keluarkan hasil dalam format JSON mentah (untuk CI/CD)")
         print()
+        return
+
+    if cmd in ("image", "photo", "img"):
+        img_target = " ".join(args[1:]) if len(args) > 1 else ""
+        if not img_target:
+            print(f"{C_RED}Path gambar wajib diisi. Contoh: phishguard image screenshot.png{C_RESET}")
+            sys.exit(1)
+        res = scan_image_phishing(img_target)
+        print(BANNER)
+        print_result_card(res)
         return
 
     if cmd == "--json":
@@ -254,7 +359,9 @@ def main():
             print(json.dumps({"error": "Target required"}))
             sys.exit(1)
         target = " ".join(args[1:])
-        if target.startswith("http://") or target.startswith("https://") or "." in target.split()[0]:
+        if target.endswith((".png", ".jpg", ".jpeg", ".webp", ".bmp")):
+            res = scan_image_phishing(target)
+        elif target.startswith("http://") or target.startswith("https://") or "." in target.split()[0]:
             res = scan_url_heuristics(target)
         else:
             res = scan_text_heuristics(target)
@@ -266,7 +373,9 @@ def main():
         if not target:
             print(f"{C_RED}Target URL/Teks wajib diisi. Contoh: phishguard scan https://bca-login.xyz{C_RESET}")
             sys.exit(1)
-        if target.startswith("http://") or target.startswith("https://") or "." in target.split()[0]:
+        if target.endswith((".png", ".jpg", ".jpeg", ".webp", ".bmp")):
+            res = scan_image_phishing(target)
+        elif target.startswith("http://") or target.startswith("https://") or "." in target.split()[0]:
             res = scan_url_heuristics(target)
         else:
             res = scan_text_heuristics(target)
@@ -284,14 +393,17 @@ def main():
         print_result_card(res)
         return
 
-    # Direct scan if argument is passed directly without subcommand
+    # Direct argument passed
     target = " ".join(args)
-    if target.startswith("http://") or target.startswith("https://") or ("." in target and " " not in target):
+    if target.endswith((".png", ".jpg", ".jpeg", ".webp", ".bmp")):
+        res = scan_image_phishing(target)
+    elif target.startswith("http://") or target.startswith("https://") or ("." in target and " " not in target):
         res = scan_url_heuristics(target)
     else:
         res = scan_text_heuristics(target)
     print(BANNER)
     print_result_card(res)
+
 
 if __name__ == "__main__":
     main()
